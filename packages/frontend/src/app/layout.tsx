@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Navbar from "./components/Navbar";
 
 export const metadata: Metadata = {
   title: "Spawn | Autonomous AI Agents on Mantle",
@@ -17,10 +18,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <nav style={{ padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--card-border)' }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }} className="gradient-text">SPAWN</div>
-          <button className="btn-primary">Connect Wallet</button>
-        </nav>
+        <Navbar />
         <main className="container">
           {children}
         </main>
