@@ -67,20 +67,18 @@ export default function Home() {
       // 3. Trigger smart contract transaction via MetaMask
       setDeployStep("Awaiting transaction confirmation in MetaMask...");
       
-      const { request } = await publicClient.simulateContract({
+      const hash = await walletClient.writeContract({
         account: address,
         address: contracts.SpawnFactory as `0x${string}`,
         abi: spawnFactoryAbi,
         functionName: 'spawnAgent',
         args: [
-          "Yield Guardian", // Default Name parsed from intent
-          "DeFi Agent",     // Default Type parsed from intent
+          "Yield Guardian", // Default Name
+          "DeFi Agent",     // Default Type
           "http://localhost:4000",
           1000000000000000000n // 1 MNT limit
         ]
       });
-
-      const hash = await walletClient.writeContract(request);
       setTxHash(hash);
 
       // 4. Wait for deployment receipt
