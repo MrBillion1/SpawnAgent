@@ -9,26 +9,26 @@ async function main() {
   console.log("Deploying contracts with the account:", deployer.address);
 
   // 1. Deploy Registries
-  const IdentityRegistry = await ethers.getContractFactory("IdentityRegistry");
+  const IdentityRegistry = await ethers.getContractFactory("contracts/ERC8004/IdentityRegistry.sol:IdentityRegistry");
   const identityReg = await IdentityRegistry.deploy();
   await identityReg.waitForDeployment();
   const identityAddress = await identityReg.getAddress();
   console.log("IdentityRegistry deployed to:", identityAddress);
 
-  const ReputationRegistry = await ethers.getContractFactory("ReputationRegistry");
+  const ReputationRegistry = await ethers.getContractFactory("contracts/ERC8004/ReputationRegistry.sol:ReputationRegistry");
   const reputationReg = await ReputationRegistry.deploy();
   await reputationReg.waitForDeployment();
   const reputationAddress = await reputationReg.getAddress();
   console.log("ReputationRegistry deployed to:", reputationAddress);
 
-  const ValidationRegistry = await ethers.getContractFactory("ValidationRegistry");
+  const ValidationRegistry = await ethers.getContractFactory("contracts/ERC8004/ValidationRegistry.sol:ValidationRegistry");
   const validationReg = await ValidationRegistry.deploy();
   await validationReg.waitForDeployment();
   const validationAddress = await validationReg.getAddress();
   console.log("ValidationRegistry deployed to:", validationAddress);
 
   // 2. Deploy Factory
-  const SpawnFactory = await ethers.getContractFactory("SpawnFactory");
+  const SpawnFactory = await ethers.getContractFactory("contracts/SpawnFactory.sol:SpawnFactory");
   const spawnFactory = await SpawnFactory.deploy(identityAddress);
   await spawnFactory.waitForDeployment();
   const factoryAddress = await spawnFactory.getAddress();
