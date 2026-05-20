@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 export default function Navbar() {
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [isCorrectNetwork, setIsCorrectNetwork] = useState<boolean>(true);
-  const [hasMetaMask, setHasMetaMask] = useState<boolean>(false);
   const [showInstallWarning, setShowInstallWarning] = useState<boolean>(false);
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
 
@@ -57,7 +56,7 @@ export default function Navbar() {
       } catch (switchError: any) {
         if (switchError.code === 4902) {
           try {
-            await window.ethereum.request({
+            await ethereum.request({
               method: 'wallet_addEthereumChain',
               params: [
                 {
@@ -87,7 +86,6 @@ export default function Navbar() {
     const ethereum = typeof window !== 'undefined' ? (window as any).ethereum : null;
     
     if (ethereum) {
-      setHasMetaMask(true);
       
       ethereum.request({ method: 'eth_accounts' })
         .then((accounts: string[]) => {
@@ -116,8 +114,6 @@ export default function Navbar() {
         ethereum.removeListener('accountsChanged', handleAccountsChanged);
         ethereum.removeListener('chainChanged', handleChainChanged);
       };
-    } else {
-      setHasMetaMask(false);
     }
   }, []);
 
