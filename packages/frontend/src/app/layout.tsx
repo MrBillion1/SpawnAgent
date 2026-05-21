@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "./components/Navbar";
+import { WalletProvider } from "./context/WalletContext";
 
 export const metadata: Metadata = {
   title: "Spawn | Autonomous AI Agents on Mantle",
@@ -18,11 +19,14 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <Navbar />
-        <main className="container">
-          {children}
-        </main>
+        <WalletProvider>
+          <Navbar />
+          <main className="container">
+            {children}
+          </main>
+        </WalletProvider>
       </body>
     </html>
   );
 }
+

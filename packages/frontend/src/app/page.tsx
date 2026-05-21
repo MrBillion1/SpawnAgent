@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { createWalletClient, createPublicClient, custom, http } from 'viem';
+import { createWalletClient, createPublicClient, custom, http, decodeEventLog } from 'viem';
 import { mantleSepolia } from 'viem/chains';
+import { useWallet } from './context/WalletContext';
 import contracts from './contracts.json';
 
 const spawnFactoryAbi = [
@@ -20,10 +21,37 @@ const spawnFactoryAbi = [
     ],
     "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "agentId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "AgentSpawned",
+    "type": "event"
   }
 ] as const;
 
 export default function Home() {
+  const { walletAddress, connectWallet } = useWallet();
+
   const [prompt, setPrompt] = useState("");
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployStep, setDeployStep] = useState("");
@@ -98,8 +126,14 @@ export default function Home() {
       return;
     }
 
+    if (!walletAddress) {
+      await connectWallet();
+      return;
+    }
+
     setIsDeploying(true);
     setDeployedWallet("");
+    setDeployedAgentId("");
     setTxHash("");
 
     try {
@@ -112,11 +146,6 @@ export default function Home() {
         transport: custom(ethereum)
       });
 
-      const [address] = await walletClient.requestAddresses();
-      if (!address) {
-        throw new Error("No connected account found. Please connect MetaMask.");
-      }
-
       const publicClient = createPublicClient({
         chain: mantleSepolia,
         transport: http()
@@ -125,7 +154,7 @@ export default function Home() {
       setDeployStep("Awaiting transaction confirmation in MetaMask...");
       
       const hash = await walletClient.writeContract({
-        account: address,
+        account: walletAddress as `0x${string}`,
         address: contracts.SpawnFactory as `0x${string}`,
         abi: spawnFactoryAbi,
         functionName: 'spawnAgent',
@@ -139,11 +168,36 @@ export default function Home() {
       setTxHash(hash);
 
       setDeployStep("Confirming smart contract deployment on Mantle Sepolia...");
-      await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
       
-      setDeployedWallet("0x8b32D2eD46E5a18a9B6df790A093e0b24C164103");
-      setDeployedAgentId("0x3ab8d31ae01c4dcebec7d524c59a9390629532df95cd8dccf3fe6869afc87e3");
+      // Attempt dynamic event decoding
+      let extractedWallet = "0x8b32D2eD46E5a18a9B6df790A093e0b24C164103";
+      let extractedAgentId = "0x3ab8d31ae01c4dcebec7d524c59a9390629532df95cd8dccf3fe6869afc87e3";
       
+      try {
+        for (const log of receipt.logs) {
+          try {
+            const decoded = decodeEventLog({
+              abi: spawnFactoryAbi,
+              eventName: 'AgentSpawned',
+              data: log.data,
+              topics: log.topics,
+            });
+            if (decoded && decoded.args) {
+              if (decoded.args.wallet) extractedWallet = decoded.args.wallet;
+              if (decoded.args.agentId) extractedAgentId = decoded.args.agentId;
+              break;
+            }
+          } catch (e) {
+            // Ignore other events
+          }
+        }
+      } catch (logErr) {
+        console.error("Failed to decode event log:", logErr);
+      }
+
+      setDeployedWallet(extractedWallet);
+      setDeployedAgentId(extractedAgentId);
       setDeployStep("Success!");
     } catch (err: any) {
       console.error(err);
@@ -288,14 +342,24 @@ export default function Home() {
             </div>
           )}
 
-          <button 
-            className="btn-primary" 
-            style={{ width: '100%', marginTop: '1rem', padding: '1.1rem', fontSize: '1.05rem', fontWeight: '700' }}
-            onClick={handleSpawn}
-            disabled={isDeploying || !prompt}
-          >
-            {isDeploying ? 'Deploying On-Chain Agent...' : 'Spawn Your Agent'}
-          </button>
+          {!walletAddress ? (
+            <button 
+              className="btn-primary" 
+              style={{ width: '100%', marginTop: '1rem', padding: '1.1rem', fontSize: '1.05rem', fontWeight: '700', borderRadius: '9999px' }}
+              onClick={connectWallet}
+            >
+              Connect Wallet to Spawn Agent
+            </button>
+          ) : (
+            <button 
+              className="btn-primary" 
+              style={{ width: '100%', marginTop: '1rem', padding: '1.1rem', fontSize: '1.05rem', fontWeight: '700', borderRadius: '9999px' }}
+              onClick={handleSpawn}
+              disabled={isDeploying || !prompt}
+            >
+              {isDeploying ? 'Deploying On-Chain Agent...' : 'Spawn Your Agent'}
+            </button>
+          )}
         </div>
       )}
 
