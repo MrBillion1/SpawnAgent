@@ -1,152 +1,130 @@
 "use client";
 
-import { useState } from 'react';
-import { useWallet } from '../context/WalletContext';
+import { useEffect, useRef, useState } from "react";
+import { useWallet } from "../context/WalletContext";
+
+const navLinks = [
+  { label: "Agents", href: "#agents" },
+  { label: "Create", href: "#create-agent" },
+  { label: "Protocols", href: "#protocols" },
+  { label: "Contract", href: "https://sepolia.mantlescan.xyz/address/0x061c4A04DAEdeB69374C9A96b120DA6ee3a6a71e", external: true },
+];
+
+const truncateAddress = (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`;
 
 export default function Navbar() {
   const {
     walletAddress,
+    chainName,
     isCorrectNetwork,
+    isConnecting,
     showInstallWarning,
+    errorMessage,
     setShowInstallWarning,
     connectWallet,
     disconnectWallet,
-    switchNetwork
+    switchNetwork,
   } = useWallet();
 
-  const [showDropdown, setShowDropdown] = useState<boolean>(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const truncateAddress = (addr: string) => {
-    return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
-  };
+  useEffect(() => {
+    const closeDropdown = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeDropdown);
+    return () => document.removeEventListener("mousedown", closeDropdown);
+  }, []);
 
   return (
     <>
-      {showInstallWarning && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          backgroundColor: '#ffffff',
-          border: '1px solid #ef4444',
-          borderRadius: '16px',
-          padding: '1.25rem',
-          zIndex: 10000,
-          maxWidth: '350px',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          animation: 'fadeIn 0.3s ease-out'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-            <span style={{ fontWeight: 'bold', color: '#ef4444', fontSize: '1.1rem' }}>MetaMask Required</span>
-            <button 
-              onClick={() => setShowInstallWarning(false)} 
-              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0 0 10px' }}
-            >
-              ×
+      {showInstallWarning ? (
+        <div className="wallet-toast">
+          <div className="toast-heading">
+            <strong>Wallet Required</strong>
+            <button type="button" onClick={() => setShowInstallWarning(false)} aria-label="Close wallet warning">
+              x
             </button>
           </div>
-          <p style={{ fontSize: '0.9rem', color: '#475569', margin: '0 0 1rem 0', lineHeight: '1.4' }}>
-            Please install the MetaMask extension in your browser to interact with the Spawn on-chain registry.
-          </p>
-          <a 
-            href="https://metamask.io/download/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="btn-primary"
-            style={{ display: 'block', textAlign: 'center', padding: '0.6rem', fontSize: '0.9rem', textDecoration: 'none' }}
-          >
+          <p>Install MetaMask or another injected wallet to deploy Spawn agents on Mantle Sepolia.</p>
+          <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer">
             Install MetaMask
           </a>
         </div>
-      )}
+      ) : null}
 
-      <nav style={{ padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(15, 23, 42, 0.08)' }}>
-        <div style={{ fontSize: '1.5rem', fontWeight: '900', cursor: 'pointer', color: '#000000', letterSpacing: '-0.05em' }} onClick={() => window.location.reload()}>SPAWN</div>
-        
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', position: 'relative' }}>
-          {walletAddress && !isCorrectNetwork && (
-            <button 
-              className="btn-primary" 
-              style={{ backgroundColor: '#ef4444', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem' }} 
-              onClick={switchNetwork}
+      {errorMessage ? <div className="wallet-error">{errorMessage}</div> : null}
+
+      <nav className="navbar">
+        <a className="brand" href="#top" aria-label="Spawn home">
+          <span className="brand-mark">S</span>
+          <span>SPAWN</span>
+        </a>
+
+        <div className="nav-links">
+          {navLinks.map((link) => (
+            <a
+              key={link.label}
+              href={link.href}
+              target={link.external ? "_blank" : undefined}
+              rel={link.external ? "noopener noreferrer" : undefined}
             >
-              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#fff', animation: 'pulse 2s infinite' }} />
-              Switch Network
+              {link.label}
+            </a>
+          ))}
+        </div>
+
+        <div className="wallet-actions">
+          {walletAddress && !isCorrectNetwork ? (
+            <button type="button" className="network-button" onClick={switchNetwork}>
+              <span />
+              Switch to Mantle
             </button>
-          )}
-          
+          ) : null}
+
           {walletAddress ? (
-            <div>
-              <button 
-                className="btn-primary" 
-                onClick={() => setShowDropdown(!showDropdown)}
-                style={{ background: '#000000', color: '#ffffff', borderRadius: '9999px' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} />
-                  {truncateAddress(walletAddress)}
-                  <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>▼</span>
-                </div>
+            <div className="wallet-menu" ref={dropdownRef}>
+              <button type="button" className="wallet-button connected" onClick={() => setShowDropdown((open) => !open)}>
+                <span className={isCorrectNetwork ? "status-dot good" : "status-dot bad"} />
+                {truncateAddress(walletAddress)}
+                <span className="chevron">v</span>
               </button>
 
-              {showDropdown && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: '0.75rem',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid rgba(15, 23, 42, 0.08)',
-                  borderRadius: '16px',
-                  padding: '1rem',
-                  minWidth: '220px',
-                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                  zIndex: 9999,
-                  animation: 'fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                }}>
-                  <div style={{ marginBottom: '0.75rem', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(15, 23, 42, 0.06)' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>Connected Wallet</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#0f172a' }}>{truncateAddress(walletAddress)}</span>
+              {showDropdown ? (
+                <div className="wallet-dropdown">
+                  <div>
+                    <span>Connected wallet</span>
+                    <strong>{truncateAddress(walletAddress)}</strong>
                   </div>
-                  
-                  <div style={{ marginBottom: '1rem' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>Network</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#2563eb' }}>Mantle Sepolia</span>
+                  <div>
+                    <span>Network</span>
+                    <strong className={isCorrectNetwork ? "network-good" : "network-bad"}>{chainName}</strong>
                   </div>
-
-                  <button 
+                  {!isCorrectNetwork ? (
+                    <button type="button" className="dropdown-button" onClick={switchNetwork}>
+                      Add or switch network
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="dropdown-button danger"
                     onClick={() => {
                       disconnectWallet();
                       setShowDropdown(false);
                     }}
-                    style={{
-                      width: '100%',
-                      padding: '0.6rem',
-                      backgroundColor: '#fee2e2',
-                      color: '#ef4444',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem',
-                      transition: 'all 0.2s ease',
-                      textAlign: 'center'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#fecaca';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#fee2e2';
-                    }}
                   >
-                    Disconnect Wallet
+                    Disconnect wallet
                   </button>
                 </div>
-              )}
+              ) : null}
             </div>
           ) : (
-            <button className="btn-primary" onClick={connectWallet} style={{ background: '#000000', color: '#ffffff', borderRadius: '9999px' }}>
-              Connect Wallet
+            <button type="button" className="wallet-button" onClick={connectWallet} disabled={isConnecting}>
+              {isConnecting ? "Connecting..." : "Connect Wallet"}
             </button>
           )}
         </div>
